@@ -1,0 +1,8 @@
+flask
+boto3
+zappa
+python-dotenv
+flask-admin
+PyJWT
+sqlalchemy
+setuptools==74.1.2

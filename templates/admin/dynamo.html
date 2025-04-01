@@ -1,0 +1,25 @@
+{% extends 'admin/master.html' %}
+
+{% block body %}
+  <h2>Forms</h2>
+  <table class="table table-striped">
+    <thead>
+      <tr>
+        <th>Item ID</th>
+        <th>Title</th>
+        <th>Field Type</th>
+        <th>Created At</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for item in items %}
+        <tr>
+          <td>{{ item.item_id }}</td>
+          <td>{{ item.title }}</td>
+          <td>{{ item.field_type }}</td>
+          <td>{{ item.created_at }}</td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+{% endblock %}
