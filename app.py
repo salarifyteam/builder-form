@@ -11,6 +11,7 @@ app = Flask(__name__)
 app.config['FLASK_ADMIN_SWATCH'] = 'cerulean'
 dynamodb = boto3.resource('dynamodb')
 table = dynamodb.Table('form')
+dynamodb_for_modify = boto3.client('dynamodb')
 
 
 class DynamoDBView(BaseView):
@@ -58,15 +59,27 @@ def create_form(current_user):
         return jsonify({"error": "No data provided"}), 400
     item = data.copy()
     item["id"] = str(uuid.uuid4())
-    table.put_item(Item={
-        "item_id": item["item_id"],
-        "title": item["title"],
-        "response": item["response"],
-        "field_type": item["field_type"],
-        "created_at": datetime.now().isoformat(),
-        "updated_at": datetime.now().isoformat()
-    })
-    return jsonify({"message": "Form created successfully"}), 201
+    try:
+        dynamodb_for_modify.transact_write_items(
+            TransactItems=[
+                {
+                    'Put': {
+                        'TableName': 'form',
+                        'Item': {
+                            'item_id': {'N': str(item["item_id"])},
+                            'title': {'S': item["title"]},
+                            'field_type': {'S': item["field_type"]},
+                            'created_at': {'S': datetime.now().isoformat()},
+                            'updated_at': {'S': datetime.now().isoformat()}
+                        }
+                    }
+                }
+            ]
+        )
+        return jsonify({"message": "Form created successfully"}), 201
+    except Exception as e:
+        print(f"트랜잭션 실패: {str(e)}")
+        return jsonify({"error": str(e)}), 400
 
 
 if __name__ == '__main__':
