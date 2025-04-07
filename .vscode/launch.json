@@ -1,7 +1,6 @@
 {
   "version": "0.2.0",
   "configurations": [
-
     {
       "name": "Python Debugger: FastAPI",
       "type": "debugpy",
@@ -9,6 +8,6 @@
       "module": "app",
       "args": ["--reload"],
       "jinja": true
-    },
+    }
   ]
 }
