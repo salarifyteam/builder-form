@@ -114,13 +114,35 @@ service_with_form_model = api.model(
     },
 )
 
+bad_request_response = api.model(
+    "BadRequestResponse",
+    {
+        "code": fields.String(description="에러 코드", default="BAD_REQUEST"),
+        "message": fields.String(
+            description="에러 메시지", default="No data provided"
+        ),
+    },
+)
+
 # 응답 모델 정의
 success_response = api.model(
-    "SuccessResponse", {"message": fields.String(description="성공 메시지")}
+    "SuccessResponse",
+    {
+        "code": fields.String(description="성공 코드", default="SUCCESS"),
+        "message": fields.String(description="성공 메시지", default="Success"),
+    },
 )
 
 error_response = api.model(
-    "ErrorResponse", {"error": fields.String(description="에러 메시지")}
+    "ErrorResponse",
+    {
+        "code": fields.String(
+            description="에러 코드", default="INTERNAL_SERVER_ERROR"
+        ),
+        "message": fields.String(
+            description="에러 메시지", default="Internal Server Error"
+        ),
+    },
 )
 
 
@@ -150,7 +172,7 @@ class ServiceWithFormResource(Resource):
         """
         data = request.json
         if not data:
-            return jsonify({"error": "No data provided"}), 400
+            return {"code": "BAD_REQUEST", "message": "No data provided"}, 400
 
         item = data.copy()
         service_id = generate_id("SVC")
@@ -218,9 +240,16 @@ class ServiceWithFormResource(Resource):
                     },
                 ],
             )
-            return {"message": "Service created successfully"}, 201
+            return {
+                "code": "SUCCESS",
+                "message": "SUCCESS",
+            }, 201
         except Exception as e:
-            return jsonify({"error": str(e)}), 500
+            print(e)
+            return {
+                "code": "INTERNAL_SERVER_ERROR",
+                "message": "Internal Server Error",
+            }, 500
 
 
 # ReDoc을 위한 설정
