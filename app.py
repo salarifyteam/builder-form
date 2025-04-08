@@ -49,7 +49,7 @@ def admin_login():
 
 @app.route("/api/service/with-form/", methods=["POST"])
 @token_required
-def create_service_with_form():
+def create_service_with_form(data):
     data = request.json
     if not data:
         return jsonify({"error": "No data provided"}), 400

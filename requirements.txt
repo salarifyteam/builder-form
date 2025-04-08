@@ -6,3 +6,6 @@ flask-admin
 PyJWT
 sqlalchemy
 setuptools==74.1.2
+flask_restx
+flask-redoc
+flask-smorest

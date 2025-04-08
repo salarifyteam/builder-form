@@ -1,19 +1,59 @@
 {% extends 'admin/master.html' %}
 
 {% block body %}
-  <h2>Service</h2>
-  <table class="table table-striped">
+  <h2>DynamoDB 데이터</h2>
+  <table class="table table-striped table-bordered">
     <thead>
-      <tr>
-        <th>Service ID</th>
-        <th>Service Name</th>
-        <th>Service Description</th>
-        <th>Created At</th>
-        <th>Data</th>
-      </tr>
+        <tr>
+            <th>entityType</th>
+            <th>PK</th>
+            <th>SK</th>
+            <th>name</th>
+            <th>description</th>
+            <th>createdAt</th>
+            <th>updatedAt</th>
+            <th>formSchema</th>
+        </tr>
     </thead>
     <tbody>
-      {{ items }}
+        {% for item in items %}
+        <tr>
+            <td>{{ item.entityType }}</td>
+            <td>{{ item.PK }}</td>
+            <td>{{ item.SK }}</td>
+            <td>{{ item.name }}</td>
+            <td>{{ item.description }}</td>
+            <td>{{ item.createdAt }}</td>
+            <td>{{ item.updatedAt }}</td>
+            <td>
+                {% if item.formSchema is defined %}
+                    <pre style="max-height: 200px; overflow-y: auto; white-space: pre-wrap;">{{ item.formSchema | tojson(indent=2) }}</pre>
+                {% endif %}
+            </td>
+        </tr>
+        {% endfor %}
     </tbody>
   </table>
+
+  <style>
+    .table {
+      font-size: 14px;
+    }
+    .table th {
+      background-color: #f8f9fa;
+      font-weight: 600;
+    }
+    .table td {
+      max-width: 300px;
+      word-wrap: break-word;
+    }
+    pre {
+      background-color: #f8f9fa;
+      border: 1px solid #eee;
+      border-radius: 4px;
+      padding: 8px;
+      margin: 0;
+      font-size: 12px;
+    }
+  </style>
 {% endblock %}

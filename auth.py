@@ -16,19 +16,22 @@ def token_required(f):
     def decorated(*args, **kwargs):
         token = None
         # Authorization 헤더에서 토큰 추출
-        if 'Authorization' in request.headers:
-            auth_header = request.headers['Authorization']
-            if auth_header.startswith('Bearer '):
-                token = auth_header.split(' ')[1]
+        if "Authorization" in request.headers:
+            auth_header = request.headers["Authorization"]
+            if auth_header.startswith("Bearer "):
+                token = auth_header.split(" ")[1]
         if not token:
-            return jsonify({'message': '토큰이 필요합니다!'}), 401
+            return jsonify({"message": "토큰이 필요합니다!"}), 401
         try:
             # 토큰 디코딩 - 여기서 서명 검증이 이루어집니다
-            payload = jwt.decode(token, JWT_SECRET_KEY, algorithms=[JWT_ALGORITHM])
+            payload = jwt.decode(
+                token, JWT_SECRET_KEY, algorithms=[JWT_ALGORITHM]
+            )
             current_user = payload  # 토큰에서 사용자 정보 추출
         except jwt.ExpiredSignatureError:
-            return jsonify({'message': '토큰이 만료되었습니다!'}), 401
+            return jsonify({"message": "토큰이 만료되었습니다!"}), 401
         except jwt.InvalidTokenError:
-            return jsonify({'message': '유효하지 않은 토큰입니다!'}), 401
+            return jsonify({"message": "유효하지 않은 토큰입니다!"}), 401
         return f(current_user, *args, **kwargs)
+
     return decorated
