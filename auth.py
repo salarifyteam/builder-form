@@ -3,6 +3,7 @@ from functools import wraps
 from flask import request, jsonify
 import os
 from dotenv import load_dotenv
+from response_handler import standard_response
 
 load_dotenv()
 
@@ -21,7 +22,9 @@ def token_required(f):
             if auth_header.startswith("Bearer "):
                 token = auth_header.split(" ")[1]
         if not token:
-            return jsonify({"message": "토큰이 필요합니다!"}), 401
+            return standard_response(
+                message="인증 토큰이 필요합니다", code="UNAUTHORIZED"
+            )
         try:
             # 토큰 디코딩 - 여기서 서명 검증이 이루어집니다
             payload = jwt.decode(
@@ -29,9 +32,21 @@ def token_required(f):
             )
             current_user = payload  # 토큰에서 사용자 정보 추출
         except jwt.ExpiredSignatureError:
-            return jsonify({"message": "토큰이 만료되었습니다!"}), 401
+            return (
+                standard_response(
+                    message="토큰이 만료되었습니다",
+                    code="UNAUTHORIZED",
+                ),
+                401,
+            )
         except jwt.InvalidTokenError:
-            return jsonify({"message": "유효하지 않은 토큰입니다!"}), 401
+            return (
+                standard_response(
+                    message="유효하지 않은 토큰입니다",
+                    code="UNAUTHORIZED",
+                ),
+                401,
+            )
         return f(current_user, *args, **kwargs)
 
     return decorated
