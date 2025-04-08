@@ -3,8 +3,8 @@
     "editor.formatOnSave": true,
     "editor.defaultFormatter": "ms-python.black-formatter",
     "editor.codeActionsOnSave": {
-      "source.organizeImports.ruff": true,
-      "source.fixAll.ruff": true
+      "source.organizeImports.ruff": "explicit",
+      "source.fixAll.ruff": "explicit"
     }
   },
   "black-formatter.args": ["--line-length", "79"]
