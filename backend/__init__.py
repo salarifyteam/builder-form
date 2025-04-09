@@ -1,0 +1,56 @@
+import random
+import string
+import time
+
+from flask import Flask
+from flask_admin import Admin
+from flask_restx import Api
+
+
+def generate_id(prefix):
+    timestamp = int(time.time() * 1000)
+    random_str = "".join(
+        random.choices(string.ascii_uppercase + string.digits, k=4)
+    )
+    return f"{prefix}{timestamp}{random_str}"
+
+
+api = Api(
+    title="Service & Form API Documentation",
+    version="1.0",
+    description="빌더서비스 API 문서",
+    doc="/docs",
+    authorizations={
+        "apikey": {
+            "type": "apiKey",
+            "in": "header",
+            "name": "Authorization",
+            "description": "인증을 위한 토큰을 입력하세요. 예: Bearer YOUR_TOKEN",
+        }
+    },
+    security="apikey",
+)
+
+admin = Admin(name="Form Admin", template_mode="bootstrap3")
+
+
+def create_app():
+    app = Flask(__name__)
+    app.config["FLASK_ADMIN_SWATCH"] = "cerulean"
+    # 블루프린트와 API 등록
+    from .views import doc_views, main_views
+    from .views.admin import dashboard
+
+    api.init_app(app)
+    admin.init_app(app)
+    api.add_namespace(main_views.main_ns)
+    app.register_blueprint(main_views.bp)
+    app.register_blueprint(dashboard.bp)
+    app.register_blueprint(doc_views.bp)
+    return app
+
+
+app = create_app()
+
+if __name__ == "__main__":
+    app.run(debug=True)

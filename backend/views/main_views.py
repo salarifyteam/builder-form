@@ -1,3 +1,4 @@
+# builder/views/main_views.py
 import random
 import string
 import time
@@ -5,11 +6,12 @@ import uuid
 from datetime import datetime
 
 import boto3
-from flask import Flask, jsonify, render_template, request
-from flask_admin import Admin, BaseView, expose
-from flask_restx import Api, Resource, fields
+from flask import Blueprint, request
+from flask_restx import Namespace, Resource, fields
 
-from auth import token_required
+bp = Blueprint("main", __name__, url_prefix="/api")
+main_ns = Namespace("api/services", description="서비스 관련 API")
+dynamodb_client = boto3.client("dynamodb")
 
 
 def generate_id(prefix):
@@ -20,62 +22,8 @@ def generate_id(prefix):
     return f"{prefix}{timestamp}{random_str}"
 
 
-app = Flask(__name__)
-app.config["FLASK_ADMIN_SWATCH"] = "cerulean"
-dynamodb_client = boto3.client("dynamodb")
-table = boto3.resource("dynamodb").Table("service")
-
-# API 문서화를 위한 설정
-authorizations = {
-    "apikey": {
-        "type": "apiKey",
-        "in": "header",
-        "name": "Authorization",
-        "description": "인증을 위한 토큰을 입력하세요. 예: Bearer YOUR_TOKEN",
-    }
-}
-
-# API 설정
-api = Api(
-    app,
-    version="1.0",
-    title="Service & Form API Documentation",
-    description="프론트엔드 개발자를 위한 서비스 및 양식 관리 API 문서",
-    doc="/docs",  # Swagger UI URL
-    authorizations=authorizations,
-    security="apikey",  # 모든 엔드포인트에 기본적으로 인증 요구
-)
-
-# 네임스페이스 생성
-service_ns = api.namespace("api/service", description="서비스 관련 엔드포인트")
-
-
-# 관리자 뷰 설정
-class DynamoDBView(BaseView):
-    @expose("/")
-    def index(self):
-        response = table.scan()
-        items = response.get("Items", [])
-        return self.render("admin/dynamo.html", items=items)
-
-
-admin = Admin(app, name="Form Admin", template_mode="bootstrap3")
-admin.add_view(DynamoDBView(name="service", endpoint="service"))
-
-
-# 메인 라우트
-@app.route("/")
-def index():
-    return jsonify({"message": "Form API가 실행 중입니다"})
-
-
-@app.route("/admin-login")
-def admin_login():
-    return render_template("admin_login.html")
-
-
-# API 모델 정의
-service_model = api.model(
+# 모델 정의
+service_model = main_ns.model(
     "Service",
     {
         "name": fields.String(required=True, description="서비스 이름"),
@@ -83,17 +31,36 @@ service_model = api.model(
     },
 )
 
-form_field_model = api.model(
+form_field_model = main_ns.model(
     "FormField",
     {
         "fieldTitle": fields.String(required=True, description="필드 제목"),
         "fieldDescription": fields.String(
             required=True, description="필드 설명"
         ),
+        "fieldCategory": fields.String(
+            required=True,
+            description="주관식: TEXT, 객관식: CHOICE",
+            enum=["TEXT"],
+        ),
+        "fieldType": fields.String(
+            required=True,
+            description="단답형: SHORT, 서술형: LONG",
+            enum=["SHORT", "LONG"],
+        ),
+        "fieldDataType": fields.String(
+            required=True,
+            description="숫자만 입력: NUM, 그 외: TEXT",
+            enum=["NUM", "TEXT"],
+        ),
+        "fieldRequired": fields.Boolean(
+            required=True,
+            description="필드 필수 여부",
+        ),
     },
 )
 
-form_model = api.model(
+form_model = main_ns.model(
     "Form",
     {
         "name": fields.String(required=True, description="양식 이름"),
@@ -106,26 +73,16 @@ form_model = api.model(
     },
 )
 
-service_with_form_model = api.model(
+service_with_form_model = main_ns.model(
     "ServiceWithForm",
     {
+        "companyId": fields.String(required=True, description="회사 ID"),
         "service": fields.Nested(service_model, required=True),
         "form": fields.Nested(form_model, required=True),
     },
 )
 
-bad_request_response = api.model(
-    "BadRequestResponse",
-    {
-        "code": fields.String(description="에러 코드", default="BAD_REQUEST"),
-        "message": fields.String(
-            description="에러 메시지", default="No data provided"
-        ),
-    },
-)
-
-# 응답 모델 정의
-success_response = api.model(
+success_response = main_ns.model(
     "SuccessResponse",
     {
         "code": fields.String(description="성공 코드", default="SUCCESS"),
@@ -133,7 +90,7 @@ success_response = api.model(
     },
 )
 
-error_response = api.model(
+error_response = main_ns.model(
     "ErrorResponse",
     {
         "code": fields.String(
@@ -146,10 +103,9 @@ error_response = api.model(
 )
 
 
-# API 엔드포인트 정의
-@service_ns.route("/with-form/")
+@main_ns.route("/with-form", strict_slashes=False)
 class ServiceWithFormResource(Resource):
-    @service_ns.doc(
+    @main_ns.doc(
         "create_service_with_form",
         description="서비스와 양식을 함께 생성합니다",
         responses={
@@ -158,12 +114,11 @@ class ServiceWithFormResource(Resource):
             500: "Internal Server Error",
         },
     )
-    @service_ns.expect(service_with_form_model)
-    @service_ns.response(201, "서비스 생성 성공", success_response)
-    @service_ns.response(400, "잘못된 요청", error_response)
-    @service_ns.response(500, "서버 오류", error_response)
-    @token_required
-    def post(self, data):
+    @main_ns.expect(service_with_form_model)
+    @main_ns.response(201, "서비스 생성 성공", success_response)
+    @main_ns.response(400, "잘못된 요청", error_response)
+    @main_ns.response(500, "서버 오류", error_response)
+    def post(self):
         """
         서비스와 양식을 함께 생성합니다.
 
@@ -194,6 +149,10 @@ class ServiceWithFormResource(Resource):
                                 },
                                 "createdAt": {"S": current_time},
                                 "updatedAt": {"S": current_time},
+                                "GSI1PK": {
+                                    "S": (f"COMPANY#{item['companyId']}")
+                                },
+                                "GSI1SK": {"S": (f"SERVICE#{service_id}")},
                             },
                             "TableName": "service",
                         },
@@ -214,10 +173,6 @@ class ServiceWithFormResource(Resource):
                                     "L": [
                                         {
                                             "M": {
-                                                "fieldId": {
-                                                    "S": str(uuid.uuid4())
-                                                },
-                                                "fieldType": {"S": "text"},
                                                 "fieldTitle": {
                                                     "S": field["fieldTitle"]
                                                 },
@@ -226,8 +181,20 @@ class ServiceWithFormResource(Resource):
                                                         "fieldDescription"
                                                     ]
                                                 },
+                                                "fieldCategory": {"S": "text"},
+                                                "fieldType": {
+                                                    "S": field["fieldType"]
+                                                },
+                                                "fieldDataType": {
+                                                    "S": field["fieldDataType"]
+                                                },
+                                                "fieldId": {
+                                                    "S": str(uuid.uuid4())
+                                                },
                                                 "fieldRequired": {
-                                                    "BOOL": True
+                                                    "BOOL": field[
+                                                        "fieldRequired"
+                                                    ]
                                                 },
                                             }
                                         }
@@ -250,38 +217,3 @@ class ServiceWithFormResource(Resource):
                 "code": "INTERNAL_SERVER_ERROR",
                 "message": "Internal Server Error",
             }, 500
-
-
-# ReDoc을 위한 설정
-@app.route("/redoc/")
-def redoc():
-    return """
-    <!DOCTYPE html>
-    <html>
-    <head>
-        <title>ReDoc API Documentation</title>
-        <meta charset="utf-8"/>
-        <meta name="viewport" content="width=device-width, initial-scale=1">
-        <link href="https://fonts.googleapis.com/css?family=Montserrat:300,400,700|Roboto:300,400,700" rel="stylesheet">
-        <style>
-            body {
-                margin: 0;
-                padding: 0;
-            }
-        </style>
-    </head>
-    <body>
-        <redoc spec-url='/swagger.json'></redoc>
-        <script src="https://cdn.jsdelivr.net/npm/redoc@latest/bundles/redoc.standalone.js"></script>
-    </body>
-    </html>
-    """
-
-
-@app.route("/swagger.json")
-def swagger_json():
-    return jsonify(api.__schema__)
-
-
-if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000, debug=True)
