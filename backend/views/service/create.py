@@ -6,6 +6,7 @@ import uuid
 from datetime import datetime
 
 import boto3
+from flask import request
 from flask_restx import Namespace, Resource, fields
 
 from backend.auth import token_required
@@ -116,7 +117,7 @@ class ServiceWithFormResource(Resource):
     @create_ns.response(400, "잘못된 요청", error_response)
     @create_ns.response(500, "서버 오류", error_response)
     @token_required
-    def post(self, request):
+    def post(self, current_user):
         """
         서비스+양식 생성
 
