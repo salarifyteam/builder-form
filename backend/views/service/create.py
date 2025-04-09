@@ -6,11 +6,11 @@ import uuid
 from datetime import datetime
 
 import boto3
-from flask import Blueprint, request
 from flask_restx import Namespace, Resource, fields
 
-bp = Blueprint("main", __name__, url_prefix="/api")
-main_ns = Namespace("api/services", description="서비스 관련 API")
+from backend.auth import token_required
+
+create_ns = Namespace(path="/service", name="서비스 생성")
 dynamodb_client = boto3.client("dynamodb")
 
 
@@ -22,8 +22,7 @@ def generate_id(prefix):
     return f"{prefix}{timestamp}{random_str}"
 
 
-# 모델 정의
-service_model = main_ns.model(
+service_model = create_ns.model(
     "Service",
     {
         "name": fields.String(required=True, description="서비스 이름"),
@@ -31,7 +30,7 @@ service_model = main_ns.model(
     },
 )
 
-form_field_model = main_ns.model(
+form_field_model = create_ns.model(
     "FormField",
     {
         "fieldTitle": fields.String(required=True, description="필드 제목"),
@@ -60,7 +59,7 @@ form_field_model = main_ns.model(
     },
 )
 
-form_model = main_ns.model(
+form_model = create_ns.model(
     "Form",
     {
         "name": fields.String(required=True, description="양식 이름"),
@@ -73,7 +72,7 @@ form_model = main_ns.model(
     },
 )
 
-service_with_form_model = main_ns.model(
+service_with_form_model = create_ns.model(
     "ServiceWithForm",
     {
         "companyId": fields.String(required=True, description="회사 ID"),
@@ -82,7 +81,7 @@ service_with_form_model = main_ns.model(
     },
 )
 
-success_response = main_ns.model(
+success_response = create_ns.model(
     "SuccessResponse",
     {
         "code": fields.String(description="성공 코드", default="SUCCESS"),
@@ -90,7 +89,7 @@ success_response = main_ns.model(
     },
 )
 
-error_response = main_ns.model(
+error_response = create_ns.model(
     "ErrorResponse",
     {
         "code": fields.String(
@@ -103,24 +102,23 @@ error_response = main_ns.model(
 )
 
 
-@main_ns.route("/with-form", strict_slashes=False)
+@create_ns.route("/with-form", strict_slashes=False)
 class ServiceWithFormResource(Resource):
-    @main_ns.doc(
-        "create_service_with_form",
-        description="서비스와 양식을 함께 생성합니다",
+    @create_ns.doc(
         responses={
             201: "Created",
             400: "Bad Request",
             500: "Internal Server Error",
         },
     )
-    @main_ns.expect(service_with_form_model)
-    @main_ns.response(201, "서비스 생성 성공", success_response)
-    @main_ns.response(400, "잘못된 요청", error_response)
-    @main_ns.response(500, "서버 오류", error_response)
-    def post(self):
+    @create_ns.expect(service_with_form_model)
+    @create_ns.response(201, "서비스 생성 성공", success_response)
+    @create_ns.response(400, "잘못된 요청", error_response)
+    @create_ns.response(500, "서버 오류", error_response)
+    @token_required
+    def post(self, request):
         """
-        서비스와 양식을 함께 생성합니다.
+        서비스+양식 생성
 
         요청 본문에 서비스 정보와 양식 정보를 함께 전달하면 DynamoDB에 저장합니다.
         각 서비스와 양식에는 고유 ID가 자동으로 생성됩니다.

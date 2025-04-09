@@ -38,13 +38,14 @@ def create_app():
     app = Flask(__name__)
     app.config["FLASK_ADMIN_SWATCH"] = "cerulean"
     # 블루프린트와 API 등록
-    from .views import doc_views, main_views
+    from .views import doc_views
     from .views.admin import dashboard
+    from .views.service import create, list
 
     api.init_app(app)
     admin.init_app(app)
-    api.add_namespace(main_views.main_ns)
-    app.register_blueprint(main_views.bp)
+    api.add_namespace(create.create_ns)
+    api.add_namespace(list.list_ns)
     app.register_blueprint(dashboard.bp)
     app.register_blueprint(doc_views.bp)
     return app

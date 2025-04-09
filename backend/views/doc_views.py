@@ -1,13 +1,11 @@
 # builder/views/doc_views.py
 from flask import Blueprint, jsonify
 
-from .. import api
+from backend import api
 
-# url_prefix를 빈 문자열로 변경
 bp = Blueprint("redoc", __name__, url_prefix="")
 
 
-# URL을 /redoc/로 변경
 @bp.route("/redoc/")
 def redoc():
     return """
