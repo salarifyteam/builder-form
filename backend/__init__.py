@@ -4,6 +4,7 @@ import time
 
 from flask import Flask
 from flask_admin import Admin
+from flask_cors import CORS
 from flask_restx import Api
 
 
@@ -36,11 +37,25 @@ admin = Admin(name="Form Admin", template_mode="bootstrap3")
 
 def create_app():
     app = Flask(__name__)
+    CORS(
+        app,
+        resources={
+            r"/*": {
+                "origins": [
+                    "http://localhost:3000",
+                    "http://127.0.0.1:3000",
+                    "https://via-dev.worked.im",
+                ],
+                "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+                "allow_headers": ["Content-Type", "Authorization"],
+            }
+        },
+    )
     app.config["FLASK_ADMIN_SWATCH"] = "cerulean"
 
     from .views import doc_views
     from .views.admin import dashboard
-    from .views.service import create, list
+    from .views.service import create, form, list
 
     api.init_app(app)
     admin.init_app(app)
@@ -51,6 +66,7 @@ def create_app():
 
     api.add_namespace(create.create_ns)
     api.add_namespace(list.list_ns)
+    api.add_namespace(form.form_ns)
     app.register_blueprint(dashboard.bp)
     app.register_blueprint(doc_views.bp)
     return app

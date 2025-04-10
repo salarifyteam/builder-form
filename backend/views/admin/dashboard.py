@@ -1,13 +1,14 @@
 import logging
 
-import boto3
 from flask import Blueprint
 from flask_admin import BaseView, expose
 from flask_restx import Namespace
 
+from backend.db import get_service_resource
+
 bp = Blueprint("admin_blueprint", __name__, url_prefix="/admin")
 admin_ns = Namespace("admin", description="관리자 관련 API")
-table = boto3.resource("dynamodb").Table("service")
+table = get_service_resource()
 
 
 # 관리자 뷰 설정

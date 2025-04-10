@@ -5,27 +5,27 @@ import time
 import uuid
 from datetime import datetime
 
-import boto3
 from flask import request
 from flask_restx import Namespace, Resource, fields
 from marshmallow import ValidationError
 
 from backend.auth import token_required
+from backend.db import get_dynamodb_client
 
 from .validators import (
     ServiceWithFormSchema,
 )
 
 create_ns = Namespace(path="/service", name="서비스 생성")
-dynamodb_client = boto3.client("dynamodb")
+dynamodb_client = get_dynamodb_client()
 
 
-def generate_id(prefix):
+def generate_id():
     timestamp = int(time.time() * 1000)
     random_str = "".join(
         random.choices(string.ascii_uppercase + string.digits, k=4)
     )
-    return f"{prefix}{timestamp}{random_str}"
+    return f"{timestamp}{random_str}"
 
 
 create_service_model = create_ns.model(
@@ -143,8 +143,8 @@ class ServiceWithFormResource(Resource):
             }, 400
 
         item = data.copy()
-        service_id = generate_id("SVC")
-        form_id = generate_id("FORM")
+        service_id = generate_id()
+        form_id = generate_id()
         current_time = datetime.now().isoformat()
 
         try:
@@ -178,6 +178,8 @@ class ServiceWithFormResource(Resource):
                                 "entityType": {"S": "FORM"},
                                 "createdAt": {"S": current_time},
                                 "updatedAt": {"S": current_time},
+                                "GSI1PK": {"S": (f"SERVICE#{service_id}")},
+                                "GSI1SK": {"S": (f"FORM#{form_id}")},
                                 "formSchema": {
                                     "L": [
                                         {
