@@ -28,16 +28,16 @@ def generate_id(prefix):
     return f"{prefix}{timestamp}{random_str}"
 
 
-service_model = create_ns.model(
-    "Service",
+create_service_model = create_ns.model(
+    "ServiceModel",
     {
         "name": fields.String(required=True, description="서비스 이름"),
         "description": fields.String(required=True, description="서비스 설명"),
     },
 )
 
-form_field_model = create_ns.model(
-    "FormField",
+form_model = create_ns.model(
+    "Form",
     {
         "fieldTitle": fields.String(required=True, description="필드 제목"),
         "fieldDescription": fields.String(
@@ -62,18 +62,9 @@ form_field_model = create_ns.model(
             required=True,
             description="필드 필수 여부",
         ),
-    },
-)
-
-form_model = create_ns.model(
-    "Form",
-    {
-        "name": fields.String(required=True, description="양식 이름"),
-        "description": fields.String(required=True, description="양식 설명"),
-        "formSchema": fields.List(
-            fields.Nested(form_field_model),
+        "fieldNumber": fields.Integer(
             required=True,
-            description="양식 필드 스키마",
+            description="필드 순서",
         ),
     },
 )
@@ -82,7 +73,7 @@ service_with_form_model = create_ns.model(
     "ServiceWithForm",
     {
         "companyId": fields.String(required=True, description="회사 ID"),
-        "service": fields.Nested(service_model, required=True),
+        "service": fields.Nested(create_service_model, required=True),
         "form": fields.Nested(form_model, required=True),
     },
 )
@@ -144,10 +135,11 @@ class ServiceWithFormResource(Resource):
         data = request.json
         try:
             ServiceWithFormSchema().load(data)
-        except ValidationError:
+        except ValidationError as e:
             return {
                 "code": "VALIDATION_ERROR",
                 "message": "payload 형식이 올바르지 않습니다.",
+                "errors": e.messages,
             }, 400
 
         item = data.copy()
@@ -184,10 +176,6 @@ class ServiceWithFormResource(Resource):
                                 "PK": {"S": form_id},
                                 "SK": {"S": service_id},
                                 "entityType": {"S": "FORM"},
-                                "name": {"S": item["form"]["name"]},
-                                "description": {
-                                    "S": item["form"]["description"]
-                                },
                                 "createdAt": {"S": current_time},
                                 "updatedAt": {"S": current_time},
                                 "formSchema": {
@@ -217,9 +205,14 @@ class ServiceWithFormResource(Resource):
                                                         "fieldRequired"
                                                     ]
                                                 },
+                                                "fieldNumber": {
+                                                    "N": str(
+                                                        field["fieldNumber"]
+                                                    )
+                                                },
                                             }
                                         }
-                                        for field in item["form"]["formSchema"]
+                                        for field in item["form"]
                                     ]
                                 },
                             },
