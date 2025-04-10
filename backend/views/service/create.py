@@ -8,8 +8,13 @@ from datetime import datetime
 import boto3
 from flask import request
 from flask_restx import Namespace, Resource, fields
+from marshmallow import ValidationError
 
 from backend.auth import token_required
+
+from .validators import (
+    ServiceWithFormSchema,
+)
 
 create_ns = Namespace(path="/service", name="서비스 생성")
 dynamodb_client = boto3.client("dynamodb")
@@ -101,6 +106,18 @@ error_response = create_ns.model(
         ),
     },
 )
+validate_response = create_ns.model(
+    "ValidateResponse",
+    {
+        "code": fields.String(
+            description="검증 코드", default="VALIDATION_ERROR"
+        ),
+        "message": fields.String(
+            description="검증 메시지",
+            default="payload 형식이 올바르지 않습니다.",
+        ),
+    },
+)
 
 
 @create_ns.route("/with-form", strict_slashes=False)
@@ -114,7 +131,7 @@ class ServiceWithFormResource(Resource):
     )
     @create_ns.expect(service_with_form_model)
     @create_ns.response(201, "서비스 생성 성공", success_response)
-    @create_ns.response(400, "잘못된 요청", error_response)
+    @create_ns.response(400, "잘못된 요청", validate_response)
     @create_ns.response(500, "서버 오류", error_response)
     @token_required
     def post(self, current_user):
@@ -125,8 +142,13 @@ class ServiceWithFormResource(Resource):
         각 서비스와 양식에는 고유 ID가 자동으로 생성됩니다.
         """
         data = request.json
-        if not data:
-            return {"code": "BAD_REQUEST", "message": "No data provided"}, 400
+        try:
+            ServiceWithFormSchema().load(data)
+        except ValidationError:
+            return {
+                "code": "VALIDATION_ERROR",
+                "message": "payload 형식이 올바르지 않습니다.",
+            }, 400
 
         item = data.copy()
         service_id = generate_id("SVC")

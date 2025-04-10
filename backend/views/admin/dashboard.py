@@ -14,11 +14,21 @@ table = boto3.resource("dynamodb").Table("service")
 class DynamoDBView(BaseView):
     @expose("/")
     def index(self):
-        response = table.scan()
-        items = response.get("Items", [])
-        return self.render("admin/dynamo.html", items=items)
+        try:
+            response = table.scan()
+            items = response.get("Items", [])
+            # 전체 템플릿 경로 지정
+            return self.render("/admin/dynamo.html", items=items)
+        except Exception as e:
+            print(f"Error: {str(e)}")
+            return str(e), 500
 
 
 admin.add_view(
-    DynamoDBView(name="service", endpoint="service", url="/admin/service")
+    DynamoDBView(
+        name="service",
+        endpoint="service",
+        url="/admin/service",
+        category="Service",
+    )
 )
