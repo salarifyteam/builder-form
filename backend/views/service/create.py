@@ -152,7 +152,7 @@ class ServiceWithFormResource(Resource):
                         "Put": {
                             "Item": {
                                 "PK": {"S": service_id},
-                                "SK": {"S": "METADATA"},
+                                "SK": {"S": f"COMPANY#{item['companyId']}"},
                                 "entityType": {"S": "SERVICE"},
                                 "name": {"S": item["service"]["name"]},
                                 "description": {

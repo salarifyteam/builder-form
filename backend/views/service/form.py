@@ -25,11 +25,14 @@ class ServiceFormResource(Resource):
         try:
             # 서비스 메타데이터 조회
             service_response = table.get_item(
-                Key={"PK": service_id, "SK": "METADATA"}
+                Key={"PK": service_id, "SK": f"COMPANY#{company_id}"}
             )
 
             if not service_response.get("Item"):
-                return jsonify({"message": "Service Not Found"}), 404
+                return (
+                    {"message": "Service Not Found"},
+                    404,
+                )
 
             service_data = service_response["Item"]
 
