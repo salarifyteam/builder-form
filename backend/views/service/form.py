@@ -24,7 +24,7 @@ form_model = form_ns.model(
         "fieldDataType": fields.String(description="필드 데이터 타입"),
         "fieldDescription": fields.String(description="필드 설명"),
         "fieldId": fields.String(description="필드 ID"),
-        "fieldNumber": fields.String(description="필드 번호"),
+        "fieldNumber": fields.Integer(description="필드 순서"),
         "fieldRequired": fields.Boolean(description="필드 필수 여부"),
         "fieldTitle": fields.String(description="필드 제목"),
         "fieldType": fields.String(description="필드 타입"),
@@ -122,6 +122,11 @@ class ServiceFormResource(Resource):
             sorted_fields = sorted(
                 form_fields, key=lambda x: float(x["fieldNumber"])
             )
+
+            # fieldNumber를 정수로 변환
+            for field in sorted_fields:
+                if "fieldNumber" in field:
+                    field["fieldNumber"] = int(float(field["fieldNumber"]))
 
             return jsonify(
                 {
