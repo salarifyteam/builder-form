@@ -1,7 +1,9 @@
+import os
 import random
 import string
 import time
 
+import sentry_sdk
 from flask import Flask
 from flask_admin import Admin
 from flask_cors import CORS
@@ -16,27 +18,20 @@ def generate_id(prefix):
     return f"{prefix}{timestamp}{random_str}"
 
 
-api = Api(
-    title="Service & Form API Documentation",
-    version="1.0",
-    description="빌더서비스 API 문서",
-    doc="/docs",
-    authorizations={
-        "apikey": {
-            "type": "apiKey",
-            "in": "header",
-            "name": "Authorization",
-            "description": "인증을 위한 토큰을 입력하세요. 예: Bearer YOUR_TOKEN",
-        }
-    },
-    security="apikey",
-)
-
-admin = Admin(name="Form Admin", template_mode="bootstrap3")
+if not os.environ.get("FLASK_ENV") == "local":
+    sentry_sdk.init(
+        dsn="https://f85843617cf8e6a951273f242d0f11d1@o1125048.ingest.us.sentry.io/4509127847903232",
+        send_default_pii=True,
+        traces_sample_rate=1.0,
+        profile_session_sample_rate=1.0,
+        profile_lifecycle="trace",
+    )
 
 
-def create_app():
+def create_app(debug=False):
+    # 프로덕션 환경에서만 Sentry 초기화
     app = Flask(__name__)
+    app.config["JSON_SORT_KEYS"] = False
     CORS(
         app,
         resources={
@@ -69,10 +64,30 @@ def create_app():
     api.add_namespace(form.form_ns)
     app.register_blueprint(dashboard.bp)
     app.register_blueprint(doc_views.bp)
+
     return app
 
 
+api = Api(
+    title="Service & Form API Documentation",
+    version="1.0",
+    description="빌더서비스 API 문서",
+    doc="/docs",
+    authorizations={
+        "apikey": {
+            "type": "apiKey",
+            "in": "header",
+            "name": "Authorization",
+            "description": "인증을 위한 토큰을 입력하세요. 예: Bearer YOUR_TOKEN",
+        }
+    },
+    security="apikey",
+)
+
+admin = Admin(name="Form Admin", template_mode="bootstrap3")
+
 app = create_app()
 
+
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(debug=True, host="0.0.0.0", port=5000)

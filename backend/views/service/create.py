@@ -9,7 +9,6 @@ from flask import request
 from flask_restx import Namespace, Resource, fields
 from marshmallow import ValidationError
 
-from backend.auth import token_required
 from backend.db import get_dynamodb_client
 
 from .validators import (
@@ -124,8 +123,7 @@ class ServiceWithFormResource(Resource):
     @create_ns.response(201, "서비스 생성 성공", success_response)
     @create_ns.response(400, "잘못된 요청", validate_response)
     @create_ns.response(500, "서버 오류", error_response)
-    @token_required
-    def post(self, current_user):
+    def post(self):
         """
         서비스+양식 생성
 
@@ -174,7 +172,7 @@ class ServiceWithFormResource(Resource):
                         "Put": {
                             "Item": {
                                 "PK": {"S": form_id},
-                                "SK": {"S": service_id},
+                                "SK": {"S": f"SERVICE#{service_id}"},
                                 "entityType": {"S": "FORM"},
                                 "createdAt": {"S": current_time},
                                 "updatedAt": {"S": current_time},

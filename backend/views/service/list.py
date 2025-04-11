@@ -1,7 +1,6 @@
 from boto3.dynamodb.conditions import Attr, Key
 from flask_restx import Namespace, Resource, fields
 
-from backend.auth import token_required
 from backend.db import get_service_resource
 
 list_ns = Namespace(
@@ -55,8 +54,7 @@ class ServiceListResource(Resource):
     @list_ns.doc("list_services")
     @list_ns.response(200, "서비스 목록 조회 성공", service_list_model)
     @list_ns.response(500, "서버 오류", error_response)
-    @token_required
-    def get(self, request, company_id):
+    def get(self, company_id):
         """
         회사 서비스 목록 조회
 
