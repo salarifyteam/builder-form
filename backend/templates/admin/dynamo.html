@@ -15,6 +15,7 @@
             <th>createdAt</th>
             <th>updatedAt</th>
             <th>formSchema</th>
+            <th>fieldData</th>
         </tr>
     </thead>
     <tbody>
@@ -32,6 +33,11 @@
             <td>
                 {% if item.formSchema is defined %}
                     <pre style="max-height: 200px; overflow-y: auto; white-space: pre-wrap;">{{ item.formSchema | tojson(indent=2) }}</pre>
+                {% endif %}
+            </td>
+            <td>
+                {% if item.fieldData is defined %}
+                    <pre style="max-height: 200px; overflow-y: auto; white-space: pre-wrap;">{{ item.fieldData | tojson(indent=2) }}</pre>
                 {% endif %}
             </td>
         </tr>

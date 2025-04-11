@@ -1,22 +1,10 @@
 import os
-import random
-import string
-import time
 
 import sentry_sdk
 from flask import Flask
 from flask_admin import Admin
 from flask_cors import CORS
 from flask_restx import Api
-
-
-def generate_id(prefix):
-    timestamp = int(time.time() * 1000)
-    random_str = "".join(
-        random.choices(string.ascii_uppercase + string.digits, k=4)
-    )
-    return f"{prefix}{timestamp}{random_str}"
-
 
 if not os.environ.get("FLASK_ENV") == "local":
     sentry_sdk.init(
@@ -50,6 +38,7 @@ def create_app(debug=False):
 
     from .views import doc_views
     from .views.admin import dashboard
+    from .views.application import create as application_create
     from .views.service import create, form, list
 
     api.init_app(app)
@@ -62,6 +51,7 @@ def create_app(debug=False):
     api.add_namespace(create.create_ns)
     api.add_namespace(list.list_ns)
     api.add_namespace(form.form_ns)
+    api.add_namespace(application_create.application_ns)
     app.register_blueprint(dashboard.bp)
     app.register_blueprint(doc_views.bp)
 

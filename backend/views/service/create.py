@@ -1,7 +1,4 @@
 # builder/views/main_views.py
-import random
-import string
-import time
 import uuid
 from datetime import datetime
 
@@ -10,6 +7,7 @@ from flask_restx import Namespace, Resource, fields
 from marshmallow import ValidationError
 
 from backend.db import get_dynamodb_client
+from backend.utils import generate_id
 
 from .validators import (
     ServiceWithFormSchema,
@@ -17,14 +15,6 @@ from .validators import (
 
 create_ns = Namespace(path="/service", name="서비스 생성")
 dynamodb_client = get_dynamodb_client()
-
-
-def generate_id():
-    timestamp = int(time.time() * 1000)
-    random_str = "".join(
-        random.choices(string.ascii_uppercase + string.digits, k=4)
-    )
-    return f"{timestamp}{random_str}"
 
 
 create_service_model = create_ns.model(
