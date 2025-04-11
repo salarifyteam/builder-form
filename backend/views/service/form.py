@@ -18,7 +18,7 @@ service_model = form_ns.model(
     },
 )
 form_model = form_ns.model(
-    "Form",
+    "FormField",
     {
         "fieldCategory": fields.String(description="필드 카테고리"),
         "fieldDataType": fields.String(description="필드 데이터 타입"),
@@ -35,7 +35,8 @@ success_response = form_ns.model(
     "SuccessResponse",
     {
         "service": fields.Nested(service_model),
-        "form": fields.List(fields.Nested(form_model)),
+        "formId": fields.String(description="폼 ID"),
+        "formFields": fields.List(fields.Nested(form_model)),
     },
 )
 
@@ -116,6 +117,7 @@ class ServiceFormResource(Resource):
                 )
 
             form_data = form_response["Items"][0]
+            formId = form_data.get("PK")
             form_fields = form_data.get("formSchema", [])
 
             # fieldNumber 기준으로 정렬
@@ -134,7 +136,8 @@ class ServiceFormResource(Resource):
                         "name": service_data.get("name"),
                         "description": service_data.get("description"),
                     },
-                    "form": sorted_fields,
+                    "formId": formId,
+                    "formFields": sorted_fields,
                 }
             )
 
