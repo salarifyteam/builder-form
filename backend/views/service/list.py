@@ -27,15 +27,6 @@ service_list_model = list_ns.model(
     },
 )
 
-
-success_response = list_ns.model(
-    "SuccessResponse",
-    {
-        "code": fields.String(description="성공 코드", default="SUCCESS"),
-        "message": fields.String(description="성공 메시지", default="Success"),
-    },
-)
-
 error_response = list_ns.model(
     "ErrorResponse",
     {

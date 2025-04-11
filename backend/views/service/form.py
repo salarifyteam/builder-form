@@ -1,6 +1,6 @@
 from boto3.dynamodb.conditions import Key
 from flask import jsonify
-from flask_restx import Namespace, Resource
+from flask_restx import Namespace, Resource, fields
 
 from backend.db import get_dynamodb_client, get_service_resource
 
@@ -9,6 +9,58 @@ form_ns = Namespace(
 )
 table = get_service_resource()
 client = get_dynamodb_client()
+
+service_model = form_ns.model(
+    "Service",
+    {
+        "name": fields.String(description="서비스 이름"),
+        "description": fields.String(description="서비스 설명"),
+    },
+)
+form_model = form_ns.model(
+    "Form",
+    {
+        "fieldCategory": fields.String(description="필드 카테고리"),
+        "fieldDataType": fields.String(description="필드 데이터 타입"),
+        "fieldDescription": fields.String(description="필드 설명"),
+        "fieldId": fields.String(description="필드 ID"),
+        "fieldNumber": fields.String(description="필드 번호"),
+        "fieldRequired": fields.Boolean(description="필드 필수 여부"),
+        "fieldTitle": fields.String(description="필드 제목"),
+        "fieldType": fields.String(description="필드 타입"),
+    },
+)
+
+success_response = form_ns.model(
+    "SuccessResponse",
+    {
+        "service": fields.Nested(service_model),
+        "form": fields.List(fields.Nested(form_model)),
+    },
+)
+
+
+error_response = form_ns.model(
+    "ErrorResponse",
+    {
+        "code": fields.String(
+            description="에러 코드", default="INTERNAL_SERVER_ERROR"
+        ),
+        "message": fields.String(
+            description="에러 메시지", default="Internal Server Error"
+        ),
+    },
+)
+
+not_found_response = form_ns.model(
+    "NotFoundResponse",
+    {
+        "code": fields.String(description="에러 코드", default="NOT_FOUND"),
+        "message": fields.String(
+            description="에러 메시지", default="Not Found"
+        ),
+    },
+)
 
 
 @form_ns.route("/<string:service_id>/form/", strict_slashes=False)
@@ -20,10 +72,17 @@ class ServiceFormResource(Resource):
             500: "Internal Server Error",
         },
     )
+    @form_ns.response(200, "OK", success_response)
+    @form_ns.response(404, "Not Found", not_found_response)
+    @form_ns.response(500, "Internal Server Error", error_response)
     # @token_required
     def get(self, company_id, service_id):
+        """
+        서비스 폼 조회
+
+        서비스 고유 식별자를 기반으로 서비스 폼을 조회합니다.
+        """
         try:
-            # 서비스 메타데이터 조회
             service_response = table.get_item(
                 Key={"PK": service_id, "SK": f"COMPANY#{company_id}"}
             )
